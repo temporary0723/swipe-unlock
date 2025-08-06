@@ -2,6 +2,7 @@
  * Swipe Unlock Extension for SillyTavern
  * Allows unlocking swipe navigation for historical messages
  */
+import { getContext } from '../../../extensions.js';
 
 const pluginName = 'swipe-unlock';
 
@@ -143,12 +144,14 @@ function toggleMessageLock(messageId, messageElement) {
  * Unlock a message for swipe navigation
  */
 function unlockMessage(messageId, messageElement) {
-    const message = chat[messageId];
+    const context = getContext();
+    const message = context?.chat?.[messageId];
     
     // Debug logging
     console.log('=== Swipe Unlock Debug ===');
     console.log('MessageId:', messageId);
-    console.log('Chat length:', chat.length);
+    console.log('Context exists:', !!context);
+    console.log('Chat length:', context?.chat?.length);
     console.log('Message exists:', !!message);
     if (message) {
         console.log('Message.swipes exists:', !!message.swipes);
@@ -198,7 +201,8 @@ function unlockMessage(messageId, messageElement) {
  */
 function lockMessage(messageId, messageElement) {
     // Restore original swipe
-    const message = chat[messageId];
+    const context = getContext();
+    const message = context?.chat?.[messageId];
     if (message) {
         message.swipe_id = originalSwipeId;
         updateMessageDisplay(messageElement, messageId, originalSwipeId);
@@ -226,7 +230,10 @@ function lockMessage(messageId, messageElement) {
  * Add swipe navigation UI to a message
  */
 function addSwipeNavigationToMessage(messageElement, messageId) {
-    const message = chat[messageId];
+    const context = getContext();
+    const message = context?.chat?.[messageId];
+    if (!message) return;
+    
     const currentSwipeId = message.swipe_id || 0;
     const totalSwipes = message.swipes.length;
     
@@ -269,7 +276,10 @@ function removeSwipeNavigationFromMessage(messageElement) {
  * Update swipe button states (enabled/disabled)
  */
 function updateSwipeButtonStates(messageElement, messageId) {
-    const message = chat[messageId];
+    const context = getContext();
+    const message = context?.chat?.[messageId];
+    if (!message) return;
+    
     const currentSwipeId = message.swipe_id || 0;
     const totalSwipes = message.swipes.length;
     
@@ -293,7 +303,10 @@ function updateSwipeButtonStates(messageElement, messageId) {
  */
 function highlightOriginalSwipe(messageElement) {
     const counter = messageElement.find('.swipe-unlock-counter');
-    const message = chat[unlockedMessageId];
+    const context = getContext();
+    const message = context?.chat?.[unlockedMessageId];
+    if (!message) return;
+    
     const currentSwipeId = message.swipe_id || 0;
     
     if (currentSwipeId === originalSwipeId) {
@@ -309,7 +322,10 @@ function highlightOriginalSwipe(messageElement) {
 function swipeUnlockedMessage(direction) {
     if (unlockedMessageId === -1) return;
     
-    const message = chat[unlockedMessageId];
+    const context = getContext();
+    const message = context?.chat?.[unlockedMessageId];
+    if (!message) return;
+    
     const currentSwipeId = message.swipe_id || 0;
     const totalSwipes = message.swipes.length;
     
@@ -334,7 +350,10 @@ function swipeUnlockedMessage(direction) {
  * Update message display with new swipe content
  */
 function updateMessageDisplay(messageElement, messageId, swipeId) {
-    const message = chat[messageId];
+    const context = getContext();
+    const message = context?.chat?.[messageId];
+    if (!message) return;
+    
     const swipeContent = message.swipes[swipeId];
     
     // Update message text
