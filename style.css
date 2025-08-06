@@ -1,0 +1,204 @@
+/* Swipe Unlock Extension Styles */
+
+/* Lock/Unlock Icon Button */
+.swipe-unlock-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 25px;
+    height: 25px;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.swipe-unlock-icon:hover {
+    opacity: 1;
+    background-color: var(--SmartThemeBlurTintColor);
+}
+
+.swipe-unlock-icon i {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor);
+}
+
+/* Unlocked message styling */
+.mes.swipe-unlocked {
+    border-left: 3px solid var(--SmartThemeQuoteColor);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Swipe Navigation Container */
+.swipe-unlock-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 8px;
+    background-color: var(--SmartThemeBlurTintColor);
+    border-radius: 6px;
+    border: 1px solid var(--SmartThemeBorderColor);
+}
+
+/* Swipe Navigation Buttons */
+.swipe-unlock-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background-color: var(--SmartThemeBodyColor);
+    color: var(--SmartThemeBlurTintColor);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.swipe-unlock-btn:hover:not(.disabled) {
+    background-color: var(--SmartThemeQuoteColor);
+    transform: scale(1.1);
+}
+
+.swipe-unlock-btn.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.swipe-unlock-btn i {
+    font-size: 14px;
+}
+
+/* Swipe Counter */
+.swipe-unlock-counter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+    height: 30px;
+    background-color: var(--SmartThemeBodyColor);
+    color: var(--SmartThemeBlurTintColor);
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--mainFontFamily);
+    user-select: none;
+    transition: all 0.2s ease;
+}
+
+/* Original swipe highlighting */
+.swipe-unlock-counter.original-swipe {
+    background-color: var(--SmartThemeQuoteColor);
+    color: white;
+    box-shadow: 0 0 8px var(--SmartThemeQuoteColor);
+}
+
+/* Animation for unlock state change */
+.mes.swipe-unlocked .swipe-unlock-navigation {
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .swipe-unlock-navigation {
+        gap: 8px;
+        padding: 6px;
+        margin-top: 8px;
+    }
+    
+    .swipe-unlock-btn {
+        width: 26px;
+        height: 26px;
+    }
+    
+    .swipe-unlock-btn i {
+        font-size: 12px;
+    }
+    
+    .swipe-unlock-counter {
+        min-width: 50px;
+        height: 26px;
+        font-size: 11px;
+    }
+}
+
+/* Dark theme adjustments */
+body.dark .swipe-unlock-navigation {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark .swipe-unlock-btn {
+    background-color: var(--SmartThemeBodyColor);
+    color: var(--SmartThemeBlurTintColor);
+}
+
+body.dark .swipe-unlock-counter {
+    background-color: var(--SmartThemeBodyColor);
+    color: var(--SmartThemeBlurTintColor);
+}
+
+/* Accessibility improvements */
+.swipe-unlock-icon:focus,
+.swipe-unlock-btn:focus {
+    outline: 2px solid var(--SmartThemeQuoteColor);
+    outline-offset: 2px;
+}
+
+/* Integration with existing SillyTavern styles */
+.mes .swipe-unlock-navigation {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Ensure proper layering */
+.swipe-unlock-navigation {
+    position: relative;
+    z-index: 10;
+}
+
+/* Custom scrollbar for very long messages */
+.mes.swipe-unlocked .mes_text {
+    max-height: none; /* Allow full expansion when unlocked */
+}
+
+/* Hover effects for better UX */
+.swipe-unlock-icon {
+    position: relative;
+}
+
+.swipe-unlock-icon::before {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--SmartThemeBodyColor);
+    color: var(--SmartThemeBlurTintColor);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+}
+
+.swipe-unlock-icon:hover::before {
+    opacity: 1;
+}
