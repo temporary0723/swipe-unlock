@@ -96,6 +96,38 @@
     box-shadow: 0 0 8px var(--SmartThemeQuoteColor);
 }
 
+/* Translation Toggle Button */
+.swipe-unlock-translation-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background-color: var(--SmartThemeBodyColor);
+    color: var(--SmartThemeBlurTintColor);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    opacity: 0.7;
+}
+
+.swipe-unlock-translation-toggle:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.swipe-unlock-translation-toggle.active {
+    background-color: var(--SmartThemeQuoteColor);
+    color: white;
+    opacity: 1;
+    box-shadow: 0 0 8px var(--SmartThemeQuoteColor);
+}
+
+.swipe-unlock-translation-toggle i {
+    font-size: 14px;
+}
+
 /* Animation for unlock state change */
 .mes.swipe-unlocked .swipe-unlock-navigation {
     animation: slideInUp 0.3s ease-out;
@@ -120,12 +152,14 @@
         margin-top: 8px;
     }
     
-    .swipe-unlock-btn {
+    .swipe-unlock-btn,
+    .swipe-unlock-translation-toggle {
         width: 26px;
         height: 26px;
     }
     
-    .swipe-unlock-btn i {
+    .swipe-unlock-btn i,
+    .swipe-unlock-translation-toggle i {
         font-size: 12px;
     }
     

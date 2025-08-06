@@ -7,6 +7,7 @@ import {
     event_types,
     chat,
     messageFormatting,
+    substituteParams,
 } from '../../../../script.js';
 
 import { getContext } from '../../../extensions.js';
@@ -16,6 +17,11 @@ const pluginName = 'swipe-unlock';
 // State management
 let unlockedMessageId = -1; // Currently unlocked message ID
 let originalSwipeId = -1; // Original swipe ID before unlock
+let showTranslation = false; // Whether to show translation
+
+// LLM Translator DB constants
+const DB_NAME = 'LLMtranslatorDB';
+const STORE_NAME = 'translations';
 
 /**
  * Get chat array safely
@@ -29,6 +35,85 @@ function getChatArray() {
     // Fallback to context.chat
     const context = getContext();
     return context?.chat || [];
+}
+
+/**
+ * Open LLM Translator DB
+ */
+async function openTranslatorDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        
+        request.onerror = () => {
+            resolve(null); // DB가 없어도 계속 진행
+        };
+        
+        request.onsuccess = () => {
+            resolve(request.result);
+        };
+    });
+}
+
+/**
+ * Get translation from DB by original text
+ */
+async function getTranslationFromDB(originalText) {
+    try {
+        const db = await openTranslatorDB();
+        if (!db) return null;
+        
+        return new Promise((resolve) => {
+            const transaction = db.transaction(STORE_NAME, 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const index = store.index('originalText');
+            const request = index.get(originalText);
+            
+            request.onsuccess = (event) => {
+                const record = event.target.result;
+                resolve(record ? record.translation : null);
+            };
+            
+            request.onerror = () => {
+                resolve(null);
+            };
+            
+            transaction.oncomplete = () => {
+                db.close();
+            };
+        });
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Get swipe translation
+ */
+async function getSwipeTranslation(messageIndex, swipeIndex) {
+    try {
+        const chatArray = getChatArray();
+        if (messageIndex < 0 || messageIndex >= chatArray.length) {
+            return null;
+        }
+        
+        const message = chatArray[messageIndex];
+        if (!message || !message.swipes || swipeIndex >= message.swipes.length) {
+            return null;
+        }
+        
+        const swipeText = message.swipes[swipeIndex];
+        if (!swipeText) {
+            return null;
+        }
+        
+        // substituteParams를 사용해서 원문 처리 (LLM Translator 방식과 동일)
+        const context = getContext();
+        const originalText = substituteParams(swipeText, context.name1, message.name);
+        
+        return await getTranslationFromDB(originalText);
+    } catch (error) {
+        return null;
+    }
 }
 
 // Action button HTML
@@ -52,9 +137,6 @@ function initializeSwipeUnlock() {
     
     // Setup event listeners
     setupEventListeners();
-    
-    // Override swipe functions to check for conflicts
-    overrideSwipeFunctions();
 }
 
 /**
@@ -140,6 +222,13 @@ function setupEventListeners() {
         event.preventDefault();
         event.stopPropagation();
         swipeUnlockedMessage(1);
+    });
+    
+    // Translation toggle handler
+    $(document).on('click', '.swipe-unlock-translation-toggle', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleTranslation();
     });
     
     // Event listeners for chat changes
@@ -243,6 +332,7 @@ function lockMessage(messageId, messageElement) {
     // Reset state
     unlockedMessageId = -1;
     originalSwipeId = -1;
+    showTranslation = false;
     
     console.log(`Message #${messageId} locked`);
 }
@@ -269,6 +359,9 @@ function addSwipeNavigationToMessage(messageElement, messageId) {
             </div>
             <div class="swipe-unlock-right swipe-unlock-btn" title="Next swipe">
                 <i class="fa-solid fa-chevron-right"></i>
+            </div>
+            <div class="swipe-unlock-translation-toggle" title="Toggle translation">
+                <i class="fa-solid fa-language"></i>
             </div>
         </div>
     `;
@@ -368,22 +461,58 @@ function swipeUnlockedMessage(direction) {
 }
 
 /**
+ * Toggle translation display
+ */
+function toggleTranslation() {
+    showTranslation = !showTranslation;
+    
+    // Update toggle button appearance
+    const toggleButton = $('.swipe-unlock-translation-toggle');
+    if (showTranslation) {
+        toggleButton.addClass('active');
+        toggleButton.attr('title', 'Show original');
+    } else {
+        toggleButton.removeClass('active');
+        toggleButton.attr('title', 'Show translation');
+    }
+    
+    // Update current message display
+    if (unlockedMessageId !== -1) {
+        const messageElement = $(`#chat .mes[mesid="${unlockedMessageId}"]`);
+        const chatArray = getChatArray();
+        const message = chatArray[unlockedMessageId];
+        if (message) {
+            updateMessageDisplay(messageElement, unlockedMessageId, message.swipe_id || 0);
+        }
+    }
+}
+
+/**
  * Update message display with new swipe content
  */
-function updateMessageDisplay(messageElement, messageId, swipeId) {
+async function updateMessageDisplay(messageElement, messageId, swipeId) {
     const chatArray = getChatArray();
     const message = chatArray[messageId];
     if (!message) return;
     
     const swipeContent = message.swipes[swipeId];
+    let displayContent = swipeContent;
+    
+    // Get translation if toggle is on
+    if (showTranslation) {
+        const translation = await getSwipeTranslation(messageId, swipeId);
+        if (translation) {
+            displayContent = translation;
+        }
+    }
     
     // Update message text
     const mesText = messageElement.find('.mes_text');
-    if (mesText.length && swipeContent) {
+    if (mesText.length && displayContent) {
         try {
             // Try to use SillyTavern's messageFormatting function
             const formattedContent = messageFormatting(
-                swipeContent,
+                displayContent,
                 message.name,
                 message.is_system || false,
                 message.is_user || false,
@@ -393,7 +522,7 @@ function updateMessageDisplay(messageElement, messageId, swipeId) {
         } catch (error) {
             console.warn('Failed to use messageFormatting, using fallback:', error);
             // Fallback: simple HTML escaping and basic formatting
-            const escapedContent = $('<div>').text(swipeContent).html();
+            const escapedContent = $('<div>').text(displayContent).html();
             mesText.html(escapedContent);
         }
     }
@@ -415,57 +544,6 @@ function handleChatChange() {
     setTimeout(() => {
         addLockIconsToMessages();
     }, 100);
-}
-
-/**
- * Override swipe functions to prevent conflicts
- */
-function overrideSwipeFunctions() {
-    // Store original functions
-    const originalSwipeRight = window.swipe_right;
-    const originalSwipeLeft = window.swipe_left;
-    
-    // Override swipe_right
-    window.swipe_right = function() {
-        if (unlockedMessageId !== -1) {
-            toastr.warning(`Please lock message #${unlockedMessageId} before swiping the last message.`);
-            return;
-        }
-        return originalSwipeRight.apply(this, arguments);
-    };
-    
-    // Override swipe_left
-    window.swipe_left = function() {
-        if (unlockedMessageId !== -1) {
-            toastr.warning(`Please lock message #${unlockedMessageId} before swiping the last message.`);
-            return;
-        }
-        return originalSwipeLeft.apply(this, arguments);
-    };
-    
-    // Override message sending
-    const originalSendSystemMessage = window.sendSystemMessage;
-    if (originalSendSystemMessage) {
-        window.sendSystemMessage = function() {
-            if (unlockedMessageId !== -1) {
-                toastr.warning(`Please lock message #${unlockedMessageId} before sending a new message.`);
-                return;
-            }
-            return originalSendSystemMessage.apply(this, arguments);
-        };
-    }
-    
-    // Override Generate function
-    const originalGenerate = window.Generate;
-    if (originalGenerate) {
-        window.Generate = function() {
-            if (unlockedMessageId !== -1) {
-                toastr.warning(`Please lock message #${unlockedMessageId} before generating a new response.`);
-                return;
-            }
-            return originalGenerate.apply(this, arguments);
-        };
-    }
 }
 
 // Initialize when jQuery is ready

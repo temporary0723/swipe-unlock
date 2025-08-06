@@ -7,7 +7,8 @@ A SillyTavern extension that allows users to unlock and navigate through swipes 
 - **🔓 Unlock Historical Messages**: Click the lock icon on any message to unlock swipe navigation
 - **🔄 Full Swipe Navigation**: Navigate through all available swipes using intuitive left/right buttons
 - **🎯 Original Swipe Highlighting**: The originally selected swipe is highlighted with a special color
-- **⚠️ Conflict Prevention**: Prevents conflicts with last message swiping and new message generation
+- **🌐 Translation Support**: Toggle between original and translated text using the language button
+- **⚠️ Conflict Prevention**: Prevents multiple messages from being unlocked simultaneously
 - **📱 Mobile Friendly**: Responsive design that works on all device sizes
 
 ## How to Use
@@ -17,21 +18,21 @@ A SillyTavern extension that allows users to unlock and navigate through swipes 
 1. **Unlock a Message**: Click the 🔒 lock icon next to any message that has multiple swipes
 2. **Navigate Swipes**: Use the ← → buttons to browse through different swipe versions
 3. **View Counter**: The counter shows current swipe position (e.g., "2/5")
-4. **Lock Message**: Click the 🔓 unlock icon to lock the message and return to normal state
+4. **Toggle Translation**: Click the 🌐 language icon to switch between original and translated text
+5. **Lock Message**: Click the 🔓 unlock icon to lock the message and return to normal state
 
 ### Visual Indicators
 
 - **🔒 Locked Icon**: Message swipes are locked (default state)
 - **🔓 Unlocked Icon**: Message swipes are accessible for navigation
 - **Highlighted Counter**: Original swipe number is shown in quote color
+- **🌐 Translation Toggle**: Shows active (colored) when translation is enabled
 - **Border Highlight**: Unlocked messages have a colored left border
 
 ### Safety Features
 
 - **Single Message Unlock**: Only one message can be unlocked at a time
 - **Conflict Prevention**: Warns when trying to unlock multiple messages
-- **Last Message Protection**: Prevents swiping last message while another is unlocked
-- **Generation Block**: Blocks new AI generation while a message is unlocked
 
 ## Installation
 
@@ -54,6 +55,7 @@ swipe-unlock/
 
 - **Message Lock/Unlock**: Toggle swipe navigation access
 - **Swipe Navigation**: Navigate through historical swipes
+- **Translation Integration**: Access LLM Translator database for translated content
 - **State Management**: Track unlocked messages and original swipe positions
 - **Conflict Detection**: Prevent multiple operations simultaneously
 - **UI Integration**: Seamlessly integrate with SillyTavern's interface
@@ -65,12 +67,14 @@ swipe-unlock/
 - `.swipe-unlock-navigation`: Swipe navigation container
 - `.swipe-unlock-btn`: Navigation button styling
 - `.swipe-unlock-counter`: Swipe counter display
+- `.swipe-unlock-translation-toggle`: Translation toggle button
 - `.original-swipe`: Highlights the original swipe
 
 ## Compatibility
 
 - **SillyTavern Version**: Compatible with current SillyTavern releases
 - **Other Extensions**: Works alongside other SillyTavern extensions
+- **LLM Translator**: Integrates with LLM Translator extension for translation features
 - **Themes**: Adapts to all SillyTavern themes (light/dark mode)
 - **Mobile**: Responsive design for mobile devices
 
