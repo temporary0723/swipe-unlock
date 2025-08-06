@@ -144,7 +144,33 @@ function toggleMessageLock(messageId, messageElement) {
  */
 function unlockMessage(messageId, messageElement) {
     const message = chat[messageId];
-    if (!message || !message.swipes || message.swipes.length <= 1) {
+    
+    // Debug logging
+    console.log('=== Swipe Unlock Debug ===');
+    console.log('MessageId:', messageId);
+    console.log('Chat length:', chat.length);
+    console.log('Message exists:', !!message);
+    if (message) {
+        console.log('Message.swipes exists:', !!message.swipes);
+        console.log('Message.swipes:', message.swipes);
+        console.log('Swipes length:', message.swipes ? message.swipes.length : 'N/A');
+        console.log('Message.is_user:', message.is_user);
+        console.log('Message.is_system:', message.is_system);
+        console.log('Message type:', message.name);
+    }
+    console.log('========================');
+    
+    if (!message) {
+        toastr.info('Message not found.');
+        return;
+    }
+    
+    if (!message.swipes || message.swipes.length < 1) {
+        toastr.info('This message has no swipes data.');
+        return;
+    }
+    
+    if (message.swipes.length <= 1) {
         toastr.info('This message has no additional swipes to navigate.');
         return;
     }
