@@ -473,23 +473,22 @@ function scrollToNavigator(messageElement) {
     requestAnimationFrame(() => {
         setTimeout(() => {
             const navigator = messageElement.find('.swipe-unlock-navigation');
-            if (navigator.length === 0) return;
+            if (navigator.length === 0) {
+                console.log('ScrollToNavigator: Navigator not found');
+                return;
+            }
             
             const navigatorElement = navigator[0];
-            const navigatorRect = navigatorElement.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
             
-            // Calculate the desired scroll position
-            // We want the navigator to be near the bottom of the screen with some padding
-            const bottomPadding = 100; // 100px from bottom
-            const targetScrollY = window.scrollY + navigatorRect.bottom - viewportHeight + bottomPadding;
-            
-            // Smooth scroll to the target position
-            window.scrollTo({
-                top: Math.max(0, targetScrollY), // Prevent negative scroll
-                behavior: 'smooth'
+            // Use scrollIntoView with block: 'end' to position the navigator at the bottom
+            navigatorElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'end',
+                inline: 'nearest'
             });
-        }, 100); // Small delay to ensure message content is updated
+            
+            console.log('ScrollToNavigator: Scrolled to navigator');
+        }, 300); // Increased delay to ensure message content is fully updated
     });
 }
 
