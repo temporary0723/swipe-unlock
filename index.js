@@ -118,8 +118,7 @@ async function getSwipeTranslation(messageIndex, swipeIndex) {
 
 // Action button HTML
 const lockButtonHtml = `
-    <div class="mes_button swipe-unlock-icon interactable" title="Unlock swipe navigation" tabindex="0">
-        <i class="fa-solid fa-lock"></i>
+    <div class="mes_button swipe-unlock-icon interactable fa-solid fa-lock" title="Unlock swipe navigation" tabindex="0">
     </div>
 `;
 
@@ -293,15 +292,18 @@ function unlockMessage(messageId, messageElement) {
     originalSwipeId = message.swipe_id || 0;
     
     // Update icon
-    const icon = messageElement.find('.swipe-unlock-icon i');
-    icon.removeClass('fa-lock').addClass('fa-lock-open');
-    messageElement.find('.swipe-unlock-icon').attr('title', 'Lock swipe navigation');
+    const iconElement = messageElement.find('.swipe-unlock-icon');
+    iconElement.removeClass('fa-lock').addClass('fa-lock-open');
+    iconElement.attr('title', 'Lock swipe navigation');
     
     // Add swipe navigation UI
     addSwipeNavigationToMessage(messageElement, messageId);
     
     // Add unlocked class
     messageElement.addClass('swipe-unlocked');
+    
+    // Auto-scroll to show the navigation
+    scrollToNavigator(messageElement);
     
     console.log(`Message #${messageId} unlocked for swipe navigation`);
 }
@@ -319,9 +321,9 @@ function lockMessage(messageId, messageElement) {
     }
     
     // Update icon
-    const icon = messageElement.find('.swipe-unlock-icon i');
-    icon.removeClass('fa-lock-open').addClass('fa-lock');
-    messageElement.find('.swipe-unlock-icon').attr('title', 'Unlock swipe navigation');
+    const iconElement = messageElement.find('.swipe-unlock-icon');
+    iconElement.removeClass('fa-lock-open').addClass('fa-lock');
+    iconElement.attr('title', 'Unlock swipe navigation');
     
     // Remove swipe navigation UI
     removeSwipeNavigationFromMessage(messageElement);
@@ -458,6 +460,37 @@ function swipeUnlockedMessage(direction) {
     const messageElement = $(`#chat .mes[mesid="${unlockedMessageId}"]`);
     updateMessageDisplay(messageElement, unlockedMessageId, newSwipeId);
     updateSwipeButtonStates(messageElement, unlockedMessageId);
+    
+    // Auto-scroll to keep navigation at bottom of screen
+    scrollToNavigator(messageElement);
+}
+
+/**
+ * Scroll to position the swipe navigator at the bottom of the screen
+ */
+function scrollToNavigator(messageElement) {
+    // Wait for DOM updates to complete
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            const navigator = messageElement.find('.swipe-unlock-navigation');
+            if (navigator.length === 0) return;
+            
+            const navigatorElement = navigator[0];
+            const navigatorRect = navigatorElement.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            
+            // Calculate the desired scroll position
+            // We want the navigator to be near the bottom of the screen with some padding
+            const bottomPadding = 100; // 100px from bottom
+            const targetScrollY = window.scrollY + navigatorRect.bottom - viewportHeight + bottomPadding;
+            
+            // Smooth scroll to the target position
+            window.scrollTo({
+                top: Math.max(0, targetScrollY), // Prevent negative scroll
+                behavior: 'smooth'
+            });
+        }, 100); // Small delay to ensure message content is updated
+    });
 }
 
 /**
@@ -483,6 +516,8 @@ function toggleTranslation() {
         const message = chatArray[unlockedMessageId];
         if (message) {
             updateMessageDisplay(messageElement, unlockedMessageId, message.swipe_id || 0);
+            // Auto-scroll after translation toggle
+            scrollToNavigator(messageElement);
         }
     }
 }

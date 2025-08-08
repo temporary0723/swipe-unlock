@@ -2,25 +2,15 @@
 
 /* Lock/Unlock Icon Button */
 .swipe-unlock-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 25px;
-    height: 25px;
     opacity: 0.7;
-    transition: opacity 0.2s ease;
     cursor: pointer;
-    border-radius: 3px;
+    font-size: 1.5em;
+    color: var(--SmartThemeBodyColor);
+    transition: opacity 0.3s ease;
 }
 
 .swipe-unlock-icon:hover {
     opacity: 1;
-    background-color: var(--SmartThemeBlurTintColor);
-}
-
-.swipe-unlock-icon i {
-    font-size: 12px;
-    color: var(--SmartThemeBodyColor);
 }
 
 /* Unlocked message styling */
@@ -187,7 +177,11 @@ body.dark .swipe-unlock-counter {
 }
 
 /* Accessibility improvements */
-.swipe-unlock-icon:focus,
+.swipe-unlock-icon:focus {
+    outline: 2px solid var(--SmartThemeQuoteColor);
+    outline-offset: 2px;
+}
+
 .swipe-unlock-btn:focus {
     outline: 2px solid var(--SmartThemeQuoteColor);
     outline-offset: 2px;
@@ -210,29 +204,4 @@ body.dark .swipe-unlock-counter {
     max-height: none; /* Allow full expansion when unlocked */
 }
 
-/* Hover effects for better UX */
-.swipe-unlock-icon {
-    position: relative;
-}
-
-.swipe-unlock-icon::before {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--SmartThemeBodyColor);
-    color: var(--SmartThemeBlurTintColor);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    z-index: 1000;
-}
-
-.swipe-unlock-icon:hover::before {
-    opacity: 1;
-}
+/* 커스텀 툴팁 제거 - 브라우저 기본 title 속성 사용 */
