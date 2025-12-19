@@ -10,6 +10,12 @@
     opacity: 1;
 }
 
+/* Ensure Font Awesome icon is visible */
+.swipe-unlock-icon::before {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "Font Awesome 5 Free", "Font Awesome 5 Pro", "FontAwesome" !important;
+    font-weight: 900;
+}
+
 /* Unlocked message styling */
 .mes.swipe-unlocked {
     border-left: 3px solid var(--SmartThemeQuoteColor);
@@ -223,31 +229,4 @@ body.dark .swipe-unlock-counter {
 /* Custom scrollbar for very long messages */
 .mes.swipe-unlocked .mes_text {
     max-height: none; /* Allow full expansion when unlocked */
-}
-
-/* Hover effects for better UX */
-.swipe-unlock-icon {
-    position: relative;
-}
-
-.swipe-unlock-icon::before {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--SmartThemeBodyColor);
-    color: var(--SmartThemeBlurTintColor);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    z-index: 1000;
-}
-
-.swipe-unlock-icon:hover::before {
-    opacity: 1;
 }
