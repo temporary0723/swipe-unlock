@@ -14,10 +14,8 @@ import { getContext } from '../../../extensions.js';
 
 const pluginName = 'swipe-unlock';
 
-// State management
-let unlockedMessageId = -1; // Currently unlocked message ID
-let originalSwipeId = -1; // Original swipe ID before unlock
-let showTranslation = false; // Whether to show translation
+// State management - support multiple unlocked messages
+const unlockedMessages = new Map(); // Map<messageId, {originalSwipeId, showTranslation}>
 
 // LLM Translator DB constants
 const DB_NAME = 'LLMtranslatorDB';
@@ -118,7 +116,8 @@ async function getSwipeTranslation(messageIndex, swipeIndex) {
 
 // Action button HTML
 const lockButtonHtml = `
-    <div class="mes_button swipe-unlock-icon interactable fa-solid fa-lock" title="Unlock swipe navigation" tabindex="0">
+    <div class="mes_button swipe-unlock-icon interactable" title="Unlock swipe navigation" tabindex="0">
+        <i class="fa-solid fa-lock"></i>
     </div>
 `;
 
@@ -201,12 +200,6 @@ function setupEventListeners() {
         const messageElement = $(this).closest('.mes');
         const messageId = parseInt(messageElement.attr('mesid'));
         
-        if (unlockedMessageId !== -1 && unlockedMessageId !== messageId) {
-            // Another message is already unlocked
-            toastr.warning(`Message #${unlockedMessageId} is currently unlocked. Please lock it first before unlocking another message.`);
-            return;
-        }
-        
         toggleMessageLock(messageId, messageElement);
     });
     
@@ -214,20 +207,35 @@ function setupEventListeners() {
     $(document).on('click', '.swipe-unlock-left', function(event) {
         event.preventDefault();
         event.stopPropagation();
-        swipeUnlockedMessage(-1);
+        const messageElement = $(this).closest('.mes');
+        const messageId = parseInt(messageElement.attr('mesid'));
+        swipeUnlockedMessage(messageId, -1);
     });
     
     $(document).on('click', '.swipe-unlock-right', function(event) {
         event.preventDefault();
         event.stopPropagation();
-        swipeUnlockedMessage(1);
+        const messageElement = $(this).closest('.mes');
+        const messageId = parseInt(messageElement.attr('mesid'));
+        swipeUnlockedMessage(messageId, 1);
     });
     
     // Translation toggle handler
     $(document).on('click', '.swipe-unlock-translation-toggle', function(event) {
         event.preventDefault();
         event.stopPropagation();
-        toggleTranslation();
+        const messageElement = $(this).closest('.mes');
+        const messageId = parseInt(messageElement.attr('mesid'));
+        toggleTranslation(messageId);
+    });
+    
+    // Copy button handler
+    $(document).on('click', '.swipe-unlock-copy', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const messageElement = $(this).closest('.mes');
+        const messageId = parseInt(messageElement.attr('mesid'));
+        copyMessageText(messageId);
     });
     
     // Event listeners for chat changes
@@ -240,7 +248,7 @@ function setupEventListeners() {
  * Toggle message lock state
  */
 function toggleMessageLock(messageId, messageElement) {
-    if (unlockedMessageId === messageId) {
+    if (unlockedMessages.has(messageId)) {
         // Lock the message
         lockMessage(messageId, messageElement);
     } else {
@@ -287,23 +295,22 @@ function unlockMessage(messageId, messageElement) {
         return;
     }
     
-    // Store original state
-    unlockedMessageId = messageId;
-    originalSwipeId = message.swipe_id || 0;
+    // Store original state for this message
+    unlockedMessages.set(messageId, {
+        originalSwipeId: message.swipe_id || 0,
+        showTranslation: false
+    });
     
     // Update icon
-    const iconElement = messageElement.find('.swipe-unlock-icon');
-    iconElement.removeClass('fa-lock').addClass('fa-lock-open');
-    iconElement.attr('title', 'Lock swipe navigation');
+    const icon = messageElement.find('.swipe-unlock-icon i');
+    icon.removeClass('fa-lock').addClass('fa-lock-open');
+    messageElement.find('.swipe-unlock-icon').attr('title', 'Lock swipe navigation');
     
     // Add swipe navigation UI
     addSwipeNavigationToMessage(messageElement, messageId);
     
     // Add unlocked class
     messageElement.addClass('swipe-unlocked');
-    
-    // Auto-scroll to show the navigation
-    scrollToNavigator(messageElement);
     
     console.log(`Message #${messageId} unlocked for swipe navigation`);
 }
@@ -312,18 +319,22 @@ function unlockMessage(messageId, messageElement) {
  * Lock a message (remove swipe navigation)
  */
 function lockMessage(messageId, messageElement) {
+    // Get stored state for this message
+    const messageState = unlockedMessages.get(messageId);
+    if (!messageState) return;
+    
     // Restore original swipe
     const chatArray = getChatArray();
     const message = chatArray[messageId];
     if (message) {
-        message.swipe_id = originalSwipeId;
-        updateMessageDisplay(messageElement, messageId, originalSwipeId);
+        message.swipe_id = messageState.originalSwipeId;
+        updateMessageDisplay(messageElement, messageId, messageState.originalSwipeId, messageState.showTranslation);
     }
     
     // Update icon
-    const iconElement = messageElement.find('.swipe-unlock-icon');
-    iconElement.removeClass('fa-lock-open').addClass('fa-lock');
-    iconElement.attr('title', 'Unlock swipe navigation');
+    const icon = messageElement.find('.swipe-unlock-icon i');
+    icon.removeClass('fa-lock-open').addClass('fa-lock');
+    messageElement.find('.swipe-unlock-icon').attr('title', 'Unlock swipe navigation');
     
     // Remove swipe navigation UI
     removeSwipeNavigationFromMessage(messageElement);
@@ -331,10 +342,8 @@ function lockMessage(messageId, messageElement) {
     // Remove unlocked class
     messageElement.removeClass('swipe-unlocked');
     
-    // Reset state
-    unlockedMessageId = -1;
-    originalSwipeId = -1;
-    showTranslation = false;
+    // Remove from unlocked messages
+    unlockedMessages.delete(messageId);
     
     console.log(`Message #${messageId} locked`);
 }
@@ -365,6 +374,9 @@ function addSwipeNavigationToMessage(messageElement, messageId) {
             <div class="swipe-unlock-translation-toggle" title="Toggle translation">
                 <i class="fa-solid fa-language"></i>
             </div>
+            <div class="swipe-unlock-copy" title="Copy text">
+                <i class="fa-solid fa-copy"></i>
+            </div>
         </div>
     `;
     
@@ -378,7 +390,7 @@ function addSwipeNavigationToMessage(messageElement, messageId) {
     updateSwipeButtonStates(messageElement, messageId);
     
     // Highlight original swipe number
-    highlightOriginalSwipe(messageElement);
+    highlightOriginalSwipe(messageElement, messageId);
 }
 
 /**
@@ -411,21 +423,24 @@ function updateSwipeButtonStates(messageElement, messageId) {
     rightBtn.toggleClass('disabled', currentSwipeId >= totalSwipes - 1);
     
     // Highlight original swipe
-    highlightOriginalSwipe(messageElement);
+    highlightOriginalSwipe(messageElement, messageId);
 }
 
 /**
  * Highlight the original swipe number with special color
  */
-function highlightOriginalSwipe(messageElement) {
+function highlightOriginalSwipe(messageElement, messageId) {
     const counter = messageElement.find('.swipe-unlock-counter');
     const chatArray = getChatArray();
-    const message = chatArray[unlockedMessageId];
+    const message = chatArray[messageId];
     if (!message) return;
+    
+    const messageState = unlockedMessages.get(messageId);
+    if (!messageState) return;
     
     const currentSwipeId = message.swipe_id || 0;
     
-    if (currentSwipeId === originalSwipeId) {
+    if (currentSwipeId === messageState.originalSwipeId) {
         counter.addClass('original-swipe');
     } else {
         counter.removeClass('original-swipe');
@@ -435,11 +450,11 @@ function highlightOriginalSwipe(messageElement) {
 /**
  * Swipe the unlocked message
  */
-function swipeUnlockedMessage(direction) {
-    if (unlockedMessageId === -1) return;
+function swipeUnlockedMessage(messageId, direction) {
+    if (!unlockedMessages.has(messageId)) return;
     
     const chatArray = getChatArray();
-    const message = chatArray[unlockedMessageId];
+    const message = chatArray[messageId];
     if (!message) return;
     
     const currentSwipeId = message.swipe_id || 0;
@@ -457,50 +472,25 @@ function swipeUnlockedMessage(direction) {
     message.swipe_id = newSwipeId;
     
     // Update UI
-    const messageElement = $(`#chat .mes[mesid="${unlockedMessageId}"]`);
-    updateMessageDisplay(messageElement, unlockedMessageId, newSwipeId);
-    updateSwipeButtonStates(messageElement, unlockedMessageId);
-    
-    // Auto-scroll to keep navigation at bottom of screen
-    scrollToNavigator(messageElement);
+    const messageElement = $(`#chat .mes[mesid="${messageId}"]`);
+    const messageState = unlockedMessages.get(messageId);
+    updateMessageDisplay(messageElement, messageId, newSwipeId, messageState.showTranslation);
+    updateSwipeButtonStates(messageElement, messageId);
 }
 
 /**
- * Scroll to position the swipe navigator at the bottom of the screen
+ * Toggle translation display for a specific message
  */
-function scrollToNavigator(messageElement) {
-    // Wait for DOM updates to complete
-    requestAnimationFrame(() => {
-        setTimeout(() => {
-            const navigator = messageElement.find('.swipe-unlock-navigation');
-            if (navigator.length === 0) {
-                console.log('ScrollToNavigator: Navigator not found');
-                return;
-            }
-            
-            const navigatorElement = navigator[0];
-            
-            // Use scrollIntoView with block: 'end' to position the navigator at the bottom
-            navigatorElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'end',
-                inline: 'nearest'
-            });
-            
-            console.log('ScrollToNavigator: Scrolled to navigator');
-        }, 300); // Increased delay to ensure message content is fully updated
-    });
-}
-
-/**
- * Toggle translation display
- */
-function toggleTranslation() {
-    showTranslation = !showTranslation;
+function toggleTranslation(messageId) {
+    const messageState = unlockedMessages.get(messageId);
+    if (!messageState) return;
     
-    // Update toggle button appearance
-    const toggleButton = $('.swipe-unlock-translation-toggle');
-    if (showTranslation) {
+    messageState.showTranslation = !messageState.showTranslation;
+    
+    // Update toggle button appearance for this specific message
+    const messageElement = $(`#chat .mes[mesid="${messageId}"]`);
+    const toggleButton = messageElement.find('.swipe-unlock-translation-toggle');
+    if (messageState.showTranslation) {
         toggleButton.addClass('active');
         toggleButton.attr('title', 'Show original');
     } else {
@@ -508,23 +498,67 @@ function toggleTranslation() {
         toggleButton.attr('title', 'Show translation');
     }
     
-    // Update current message display
-    if (unlockedMessageId !== -1) {
-        const messageElement = $(`#chat .mes[mesid="${unlockedMessageId}"]`);
-        const chatArray = getChatArray();
-        const message = chatArray[unlockedMessageId];
-        if (message) {
-            updateMessageDisplay(messageElement, unlockedMessageId, message.swipe_id || 0);
-            // Auto-scroll after translation toggle
-            scrollToNavigator(messageElement);
+    // Update message display
+    const chatArray = getChatArray();
+    const message = chatArray[messageId];
+    if (message) {
+        updateMessageDisplay(messageElement, messageId, message.swipe_id || 0, messageState.showTranslation);
+    }
+}
+
+/**
+ * Copy message text (original or translation based on current state)
+ */
+async function copyMessageText(messageId) {
+    const messageState = unlockedMessages.get(messageId);
+    if (!messageState) return;
+    
+    const chatArray = getChatArray();
+    const message = chatArray[messageId];
+    if (!message) return;
+    
+    const swipeId = message.swipe_id || 0;
+    let textToCopy = message.swipes[swipeId];
+    
+    // If translation is enabled, get translation text
+    if (messageState.showTranslation) {
+        const translation = await getSwipeTranslation(messageId, swipeId);
+        if (translation) {
+            textToCopy = translation;
         }
+    }
+    
+    // Remove HTML tags and get plain text
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = textToCopy;
+    const plainText = tempDiv.textContent || tempDiv.innerText || '';
+    
+    // Copy to clipboard
+    try {
+        await navigator.clipboard.writeText(plainText);
+        toastr.success('Text copied to clipboard');
+    } catch (error) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = plainText;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            toastr.success('Text copied to clipboard');
+        } catch (err) {
+            toastr.error('Failed to copy text');
+        }
+        document.body.removeChild(textArea);
     }
 }
 
 /**
  * Update message display with new swipe content
  */
-async function updateMessageDisplay(messageElement, messageId, swipeId) {
+async function updateMessageDisplay(messageElement, messageId, swipeId, showTranslation = false) {
     const chatArray = getChatArray();
     const message = chatArray[messageId];
     if (!message) return;
@@ -566,18 +600,13 @@ async function updateMessageDisplay(messageElement, messageId, swipeId) {
  * Handle chat changes (new messages, etc.)
  */
 function handleChatChange() {
-    // Lock any unlocked message when chat changes
-    if (unlockedMessageId !== -1) {
-        const messageElement = $(`#chat .mes[mesid="${unlockedMessageId}"]`);
-        if (messageElement.length) {
-            lockMessage(unlockedMessageId, messageElement);
-        }
-    }
-    
     // Add icons to new messages
     setTimeout(() => {
         addLockIconsToMessages();
     }, 100);
+    
+    // Note: Unlocked messages remain unlocked even when chat changes
+    // Users can manually lock them if needed
 }
 
 // Initialize when jQuery is ready
