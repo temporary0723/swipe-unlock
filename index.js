@@ -143,12 +143,17 @@ async function getSwipeTranslation(messageIndex, swipeIndex) {
     }
 }
 
-// Action button HTML
-const lockButtonHtml = `
-    <div class="mes_button swipe-unlock-icon interactable" title="Unlock swipe navigation" tabindex="0">
-        <i class="fa-solid fa-lock"></i>
-    </div>
-`;
+/**
+ * Create lock button element
+ */
+function createLockButton() {
+    return $('<div>')
+        .addClass('mes_button swipe-unlock-icon fa-solid fa-lock interactable')
+        .attr({
+            'title': 'Unlock swipe navigation',
+            'tabindex': '0'
+        });
+}
 
 /**
  * Initialize the swipe unlock extension
@@ -176,7 +181,8 @@ function addLockIconsToMessages() {
         
         // Add lock icon if container exists and icon doesn't exist yet
         if (extraButtonsContainer.length && !extraButtonsContainer.find('.swipe-unlock-icon').length) {
-            extraButtonsContainer.prepend(lockButtonHtml);
+            const lockButton = createLockButton();
+            extraButtonsContainer.prepend(lockButton);
         }
     });
 }
@@ -331,9 +337,9 @@ function unlockMessage(messageId, messageElement) {
     });
     
     // Update icon
-    const icon = messageElement.find('.swipe-unlock-icon i');
+    const icon = messageElement.find('.swipe-unlock-icon');
     icon.removeClass('fa-lock').addClass('fa-lock-open');
-    messageElement.find('.swipe-unlock-icon').attr('title', 'Lock swipe navigation');
+    icon.attr('title', 'Lock swipe navigation');
     
     // Add swipe navigation UI
     addSwipeNavigationToMessage(messageElement, messageId);
@@ -366,9 +372,9 @@ function lockMessage(messageId, messageElement) {
     }
     
     // Update icon
-    const icon = messageElement.find('.swipe-unlock-icon i');
+    const icon = messageElement.find('.swipe-unlock-icon');
     icon.removeClass('fa-lock-open').addClass('fa-lock');
-    messageElement.find('.swipe-unlock-icon').attr('title', 'Unlock swipe navigation');
+    icon.attr('title', 'Unlock swipe navigation');
     
     // Remove swipe navigation UI
     removeSwipeNavigationFromMessage(messageElement);

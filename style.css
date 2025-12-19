@@ -2,24 +2,12 @@
 
 /* Lock/Unlock Icon Button */
 .swipe-unlock-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 25px;
-    height: 25px;
     opacity: 0.7;
     transition: opacity 0.2s ease;
-    cursor: pointer;
-    border-radius: 3px;
 }
 
 .swipe-unlock-icon:hover {
     opacity: 1;
-}
-
-.swipe-unlock-icon i {
-    font-size: 12px;
-    color: var(--SmartThemeBodyColor);
 }
 
 /* Unlocked message styling */
